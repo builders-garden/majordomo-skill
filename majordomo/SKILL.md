@@ -1,7 +1,7 @@
 ---
 name: majordomo
 description: Use when the user wants to delegate a task to a specialized external agent, find an AI service, or execute a capability the current agent doesn't have. Supports x402 payments, MCP tool discovery, and autonomous or human-in-the-loop execution modes.
-metadata: {"openclaw": {"emoji": "🎩", "homepage": "https://github.com/builders-garden/majordomo-skill", "requires": {"env": ["MAJORDOMO_URL"]}}}
+metadata: {"openclaw": {"emoji": "🎩", "homepage": "https://github.com/builders-garden/majordomo-skill"}}
 ---
 
 # Majordomo
@@ -14,13 +14,14 @@ Majordomo is an intent resolution network. You describe what you need in natural
 
 ## Configuration
 
-Set the `MAJORDOMO_URL` environment variable to the Majordomo endpoint:
-- **Local development:** `http://localhost:3000` (default if not set)
-- **Production:** The hosted Majordomo instance URL
+The skill reads `MAJORDOMO_URL` from the environment. If already set, no action needed — just use the skill.
 
-**Prerequisite:** A wallet with USDC on Base must be configured for x402 payments. The skill assumes this is already set up.
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `MAJORDOMO_URL` | `http://localhost:3000` | Majordomo endpoint (Servex proxy) |
+| `MAJORDOMO_AUTO_BUDGET` | `1.00` | Max USDC for autonomous execution without user confirmation |
 
-**Optional:** Set `MAJORDOMO_AUTO_BUDGET` to the maximum USDC amount for autonomous execution (default: `1.00`). Below this threshold, the agent can use `auto_select: true` without asking the user.
+**Do NOT ask the user to configure these if they are already set in the environment.** Just proceed with the workflow.
 
 **Authentication:** None required. Intent submission and polling are public. Execution payment is handled transparently by Servex (x402 reverse proxy) using the configured wallet.
 
