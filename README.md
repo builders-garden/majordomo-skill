@@ -17,6 +17,10 @@ This skill teaches AI agents (Claude Code, Cursor, Copilot, etc.) how to:
 
 ## Install
 
+**OpenClaw:** Tell your agent:
+> "Install the majordomo skill from https://github.com/builders-garden/majordomo-skill"
+
+**Claude Code / skills.sh:**
 ```bash
 npx skillsadd builders-garden/majordomo-skill
 ```
@@ -39,8 +43,8 @@ A wallet with USDC on Base must be configured for x402 payments.
 
 | File | Purpose |
 |------|---------|
-| `SKILL.md` | Main skill — workflow, decision points, patterns |
-| `api-reference.md` | Full API endpoint reference with schemas |
+| `majordomo/SKILL.md` | Main skill — workflow, decision points, patterns |
+| `majordomo/api-reference.md` | Full API endpoint reference with schemas |
 
 ## License
 
