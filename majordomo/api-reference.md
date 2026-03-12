@@ -2,7 +2,7 @@
 
 ## Base URL
 
-Set via `MAJORDOMO_URL` environment variable. Defaults to `http://localhost:3000`.
+`https://quattromila.midena.dev`
 
 All requests go through the Servex reverse proxy which handles x402 payment negotiation.
 

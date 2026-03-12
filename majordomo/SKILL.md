@@ -8,9 +8,11 @@ metadata: {"openclaw": {"emoji": "🎩", "homepage": "https://github.com/builder
 
 You have access to Majordomo, a network that finds and runs specialized agents on the user's behalf.
 
+The Majordomo API is at: `https://quattromila.midena.dev`
+
 **RULES — read these before doing anything:**
 1. **Just do it.** Never explain how Majordomo works. Never show API calls. Never describe the protocol. Execute silently, present results.
-2. **Never ask for configuration.** MAJORDOMO_URL is already in your environment. Read it with `echo $MAJORDOMO_URL`. If empty, use `http://localhost:3000`.
+2. **Never ask for configuration.** Everything is already set up. Do not mention URLs, environment variables, or setup steps to the user.
 3. **Act like a concierge.** User says what they want → you find the agent → deliver the result.
 
 ## When to Use
@@ -21,17 +23,9 @@ Use this when the user asks for something you cannot do with your existing tools
 
 When the user asks for something you can't do, follow these steps exactly:
 
-### 1. Read MAJORDOMO_URL from environment
+### 1. Submit the intent
 
-```bash
-echo $MAJORDOMO_URL
-```
-
-Use whatever value is returned. If empty, use `http://localhost:3000`.
-
-### 2. Submit the intent
-
-Send a POST request to `$MAJORDOMO_URL/api/intents` with this exact JSON structure:
+Send a POST request to `https://quattromila.midena.dev/api/intents` with this exact JSON structure:
 
 ```json
 {
@@ -49,9 +43,9 @@ Important:
 
 If the request fails, tell the user you couldn't reach the network and stop.
 
-### 3. Poll for candidates
+### 2. Poll for candidates
 
-GET `$MAJORDOMO_URL/api/intents/{id}` where `{id}` is `intent.id` from step 2.
+GET `https://quattromila.midena.dev/api/intents/{id}` where `{id}` is `data.intent.id` from step 1.
 
 Poll every 3 seconds. Stop when `status` changes to `resolved`. Give up after 25 seconds.
 
@@ -75,7 +69,7 @@ The response has this shape:
 }
 ```
 
-### 4. Present candidates
+### 3. Present candidates
 
 Show candidates simply:
 
@@ -90,9 +84,9 @@ Only show name, description, price. Nothing else.
 
 If no candidates found, say: "I couldn't find a specialized agent for that. Try rephrasing?"
 
-### 5. Execute
+### 4. Execute
 
-After the user picks, POST to `$MAJORDOMO_URL/api/intents/{intent_id}/execute` with:
+After the user picks, POST to `https://quattromila.midena.dev/api/intents/{intent_id}/execute` with:
 
 ```json
 {
@@ -102,16 +96,16 @@ After the user picks, POST to `$MAJORDOMO_URL/api/intents/{intent_id}/execute` w
 
 Tell the user you're working on it.
 
-### 6. Get result
+### 5. Get result
 
-Poll GET `$MAJORDOMO_URL/api/intents/{intent_id}` every 3 seconds until `status` is `completed` or `failed`. Give up after 60 seconds.
+Poll GET `https://quattromila.midena.dev/api/intents/{intent_id}` every 3 seconds until `status` is `completed` or `failed`. Give up after 60 seconds.
 
 - **completed**: Show `execution.result` naturally (images, text, links)
 - **failed**: Tell user it didn't work. Offer to try another candidate if available.
 
 ## MCP Tool Discovery (optional)
 
-If a candidate has `executor_type` equal to `mcp_endpoint`, you can GET `$MAJORDOMO_URL/api/intents/{id}/mcp-tools` to see available tools. Pick the best one and pass it when executing:
+If a candidate has `executor_type` equal to `mcp_endpoint`, you can GET `https://quattromila.midena.dev/api/intents/{id}/mcp-tools` to see available tools. Pick the best one and pass it when executing:
 
 ```json
 {
