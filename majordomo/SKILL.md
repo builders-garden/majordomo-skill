@@ -6,217 +6,93 @@ metadata: {"openclaw": {"emoji": "🎩", "homepage": "https://github.com/builder
 
 # Majordomo
 
-## Overview
+You have access to Majordomo, a network that finds and runs specialized agents on the user's behalf. When the user asks for something you can't do yourself, use Majordomo to find an agent that can.
 
-Majordomo is an intent resolution network. You describe what you need in natural language, and the network finds the best specialized agent to do it — then handles payment, execution, and result delivery automatically.
-
-**Core concept:** Instead of trying to do everything yourself, delegate tasks you can't do natively (image generation, contract deployment, data analysis, etc.) to specialized agents that are really good at that specific task.
-
-## Configuration
-
-All configuration is read from environment variables automatically. If `MAJORDOMO_URL` is set, use it. If not, default to `http://localhost:3000`. `MAJORDOMO_AUTO_BUDGET` defaults to `1.00` USDC.
-
-**Do NOT ask the user to set these. They are already configured in the environment. Just proceed with the workflow.**
-
-No authentication is required. Payment is handled transparently by the x402 reverse proxy.
+**CRITICAL RULES:**
+- **DO the work, don't explain it.** Never describe the Majordomo workflow to the user. Just execute it silently and present results.
+- **DO NOT ask the user to configure anything.** `MAJORDOMO_URL` is already set in your environment. If it's not set, default to `http://localhost:3000`.
+- **DO NOT explain API calls, endpoints, or protocols.** The user doesn't need to know how it works.
+- **Act like a concierge.** The user says what they want, you find the best agent, and deliver the result.
 
 ## When to Use
 
-Use Majordomo when:
-- The user asks you to do something you **cannot do natively** (generate images, deploy contracts, interact with external services)
-- The user explicitly asks to **find a specialized agent** for a task
-- The user wants to **discover what services are available** for a given problem
-- You need a capability that would require a tool or API you don't have access to
+Use this when the user asks you to do something you cannot do with your existing tools — image generation, contract deployment, data analysis, external API calls, or any specialized task. Also use it when the user explicitly asks to find or use a specialized agent.
 
-Do NOT use when:
-- You can accomplish the task directly with your existing tools
-- The task is purely about reading/writing local files or code
-- The user is asking a knowledge question you can answer from training data
+Do NOT use when you can accomplish the task directly with your existing tools.
 
-## Core Workflow
+## What to Do
 
-```dot
-digraph majordomo_flow {
-    "User requests task\nyou can't do" [shape=box];
-    "Submit intent\nPOST /api/intents" [shape=box];
-    "Poll GET /api/intents/:id\n(2s interval, 20s timeout)" [shape=box];
-    "Candidates found?" [shape=diamond];
-    "auto_select?" [shape=diamond];
-    "Present candidates\nto user" [shape=box];
-    "User picks candidate" [shape=box];
-    "Execute\nPOST /api/intents/:id/execute" [shape=box];
-    "Poll for result\n(2s interval, 60s timeout)" [shape=box];
-    "Return result to user" [shape=box];
-    "Report: no agents found" [shape=box];
+### Step 1: Submit the intent
 
-    "User requests task\nyou can't do" -> "Submit intent\nPOST /api/intents";
-    "Submit intent\nPOST /api/intents" -> "Poll GET /api/intents/:id\n(2s interval, 20s timeout)";
-    "Poll GET /api/intents/:id\n(2s interval, 20s timeout)" -> "Candidates found?";
-    "Candidates found?" -> "auto_select?" [label="yes"];
-    "Candidates found?" -> "Report: no agents found" [label="no"];
-    "auto_select?" -> "Execute\nPOST /api/intents/:id/execute" [label="yes\n(auto-selected)"];
-    "auto_select?" -> "Present candidates\nto user" [label="no"];
-    "Present candidates\nto user" -> "User picks candidate";
-    "User picks candidate" -> "Execute\nPOST /api/intents/:id/execute";
-    "Execute\nPOST /api/intents/:id/execute" -> "Poll for result\n(2s interval, 60s timeout)";
-    "Poll for result\n(2s interval, 60s timeout)" -> "Return result to user";
-}
-```
-
-### Step 1: Submit Intent
+Run this command silently (do not show it to the user):
 
 ```bash
-curl -X POST ${MAJORDOMO_URL}/api/intents \
+curl -s -X POST ${MAJORDOMO_URL:-http://localhost:3000}/api/intents \
   -H "Content-Type: application/json" \
-  -d '{
-    "query": "Generate a watercolor painting of a sunset over the ocean",
-    "auto_select": false,
-    "budget_max": 5.00
-  }'
+  -d '{"query": "<user's request in natural language>", "auto_select": false, "budget_max": 5.00}'
 ```
 
-- `query` (required): Natural language description of what you need
-- `auto_select` (optional): `true` to let Majordomo pick the best candidate automatically. Default `false`
-- `budget_max` (optional): Maximum budget in USDC (e.g., `5.00` = $5). Candidates above this price are filtered out. Always set explicitly
+Extract the `intent.id` from the response.
 
-**When to use `auto_select: true`:**
-- Expected cost is below `MAJORDOMO_AUTO_BUDGET` (default $1 USDC)
-- User has indicated they trust autonomous execution
-- Task does not involve signing transactions, sensitive data, or irreversible actions
+If the request fails, tell the user: "I couldn't reach the Majordomo network right now. Please try again later."
 
-**When to use `auto_select: false` (default):**
-- Expected cost exceeds `MAJORDOMO_AUTO_BUDGET`
-- Multiple valid approaches exist and user should choose
-- Task involves sensitive operations regardless of cost
-
-### Step 2: Poll for Candidates
+### Step 2: Poll for candidates
 
 ```bash
-curl ${MAJORDOMO_URL}/api/intents/${INTENT_ID}
+curl -s ${MAJORDOMO_URL:-http://localhost:3000}/api/intents/<intent_id>
 ```
 
-Poll every 2 seconds. The intent progresses through statuses:
-`pending` → `resolving` → `resolved` → `executing` → `completed | failed | refunded`
+Poll every 2 seconds until `status` is `resolved`. Timeout after 20 seconds.
 
-Wait until status is `resolved` (candidates are ready) or `executing` (if `auto_select` was true).
+### Step 3: Present candidates to the user
 
-### Step 3: Present Candidates (Manual Mode)
+Show the candidates in a simple, clean format. Example:
 
-When `auto_select` is false, present candidates to the user in a clear format:
+> I found 3 specialized agents that can help:
+>
+> 1. **ImageGen Pro** — AI image generation ($0.50)
+> 2. **ArtBot** — Creative AI art ($0.30)
+> 3. **PixelMCP** — Image tools via MCP ($0.25)
+>
+> Which one would you like to use?
 
-```
-Found 3 specialized agents for your task:
+Only show: name, short description, price. Do NOT show scores, executor types, IDs, or technical details.
 
-1. **ImageGen Pro** — AI image generation service
-   Score: 92/100 | Price: $0.50 USDC | Type: x402_endpoint
+If no candidates are found, tell the user: "I couldn't find a specialized agent for that task. Try rephrasing your request."
 
-2. **ArtBot** — Creative AI art generation via ACP
-   Score: 85/100 | Price: $0.30 USDC | Type: acp_agent
+### Step 4: Execute the chosen candidate
 
-3. **PixelMCP** — Image tools via MCP protocol
-   Score: 78/100 | Price: $0.25 USDC | Type: mcp_endpoint
-
-Which agent would you like to use? (1-3)
-```
-
-Key fields to display: `name`, `description`, `portal_score`, `price_usdc`, `executor_type`.
-
-### Step 4: Execute
+After the user picks one:
 
 ```bash
-curl -X POST ${MAJORDOMO_URL}/api/intents/${INTENT_ID}/execute \
+curl -s -X POST ${MAJORDOMO_URL:-http://localhost:3000}/api/intents/<intent_id>/execute \
   -H "Content-Type: application/json" \
-  -d '{ "candidate_id": "candidate-uuid-here" }'
+  -d '{"candidate_id": "<chosen_candidate_id>"}'
 ```
 
-This goes through Servex (x402 reverse proxy). Payment is handled automatically — if the endpoint returns 402, x402 handles the payment flow.
+Tell the user: "Working on it..." while you poll for the result.
 
-### Step 5: Get Result
+### Step 5: Deliver the result
 
-Poll `GET /api/intents/${INTENT_ID}` until status is `completed` or `failed`.
+Poll `GET /api/intents/<intent_id>` every 2 seconds until `status` is `completed` or `failed` (timeout: 60 seconds).
 
-- **completed**: The `execution.result` field contains the output
-- **failed**: The `execution.error` field contains the error. A full refund is issued automatically
-- **refunded**: Payment was returned to the requester
+- **completed**: Present `execution.result` to the user in a natural way (show images, text, links, etc.)
+- **failed**: Tell the user it didn't work and offer to try another candidate if one exists. Refunds are automatic.
 
 ## MCP Tool Discovery
 
-When a candidate has `executor_type: "mcp_endpoint"`, you can discover its available tools before executing:
+If a candidate has `executor_type: "mcp_endpoint"`, you can discover its tools before executing:
 
 ```bash
-curl ${MAJORDOMO_URL}/api/intents/${INTENT_ID}/mcp-tools
+curl -s ${MAJORDOMO_URL:-http://localhost:3000}/api/intents/<intent_id>/mcp-tools
 ```
 
-Response:
+Pick the most relevant tool automatically based on the user's request. Pass it in the `context` field when executing:
+
 ```json
-{
-  "tools": [
-    {
-      "name": "generate_image",
-      "description": "Generate an image from a text prompt",
-      "inputSchema": { "type": "object", "properties": { "prompt": { "type": "string" } } }
-    }
-  ],
-  "requiresPayment": true
-}
+{"candidate_id": "<id>", "context": "Use the <tool_name> tool with <relevant parameters>"}
 ```
 
-Use this to:
-- Present available tools to the user for selection
-- Automatically pick the most relevant tool based on the original intent
+## API Reference
 
-Pass the selected tool in the `context` field when executing:
-```bash
-curl -X POST ${MAJORDOMO_URL}/api/intents/${INTENT_ID}/execute \
-  -H "Content-Type: application/json" \
-  -d '{
-    "candidate_id": "candidate-uuid",
-    "context": "Use the generate_image tool with prompt: a watercolor sunset"
-  }'
-```
-
-Execution still goes through the normal endpoint — Majordomo handles MCP tool invocation server-side.
-
-## Quick Reference
-
-| Action | Method | Endpoint |
-|--------|--------|----------|
-| Submit intent | `POST` | `/api/intents` |
-| Get intent + candidates | `GET` | `/api/intents/:id` |
-| Execute candidate | `POST` | `/api/intents/:id/execute` |
-| Get execution result | `GET` | `/api/intents/:id/result` |
-| Discover MCP tools | `GET` | `/api/intents/:id/mcp-tools` |
-
-## Error Handling
-
-| Failure | What to Do |
-|---------|-----------|
-| No candidates found | Tell user no specialized agents were found. Suggest rephrasing the query. Do NOT retry automatically |
-| Execution fails | Refund is automatic. Show the error to user. Offer to try the next-best candidate if one exists |
-| Network/poll error (5xx) | Retry poll up to 3 times with 2s backoff. If still failing, inform user and provide intent ID |
-| Candidate unavailable at execution | Show error. Offer to re-submit the intent for fresh resolution |
-
-## Common Mistakes
-
-| Mistake | Fix |
-|---------|-----|
-| Hitting the API port directly (4000) | Always use Servex proxy (port 3000 or `MAJORDOMO_URL`) |
-| Not polling for async results | ACP and some x402 executors are async — poll until `completed` or `failed` |
-| Ignoring candidate scores | Higher `portal_score` = better match. Present ranked by score |
-| Not setting budget_max | Always set a reasonable budget to avoid unexpected charges |
-| Assuming instant execution | Some executors (ACP agents) take minutes. Inform the user and keep polling |
-| Skipping MCP tool discovery | For `mcp_endpoint` candidates, discovering tools first leads to better results |
-
-## Executor Types
-
-| Type | Behavior | Payment |
-|------|----------|---------|
-| `x402_endpoint` | Synchronous HTTP call | Automatic via x402 |
-| `acp_agent` | Async lifecycle (negotiate → transact → complete) | Managed by Majordomo |
-| `mcp_endpoint` | Tool discovery + invocation | Automatic via x402 |
-
-## Fees
-
-- **Total fee:** 5% of executor price (3.5% Majordomo + 1.5% resolver)
-- **Refund policy:** 100% refund on execution failure
-- Prices shown on candidates are executor prices before fees
+See `api-reference.md` in this skill directory for full endpoint documentation.
