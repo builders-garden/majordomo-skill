@@ -12,29 +12,37 @@ All requests go through the Servex reverse proxy which handles x402 payment nego
 
 Create a new intent for resolution.
 
-**Request:**
+**Request body (JSON):**
 ```json
 {
-  "query": "string (required) — Natural language description of the task",
-  "context": "string (optional) — Additional context for resolvers",
-  "auto_select": "boolean (optional, default: false) — Auto-pick best candidate",
-  "budget_max": "number (optional) — Maximum USDC budget"
+  "query": "Generate a watercolor sunset",
+  "auto_select": false,
+  "budget_max": 5.00
 }
 ```
 
-**Response (201):**
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `query` | string | yes | — | Natural language description (1-2000 chars) |
+| `context` | object | no | — | Key-value pairs with additional context for resolvers |
+| `auto_select` | boolean | no | `true` | Auto-pick the top-ranked candidate |
+| `budget_max` | number | no | — | Maximum USDC budget (positive, max $100) |
+
+**Response (200):**
 ```json
 {
-  "intent": {
-    "id": "uuid",
-    "query": "Generate a watercolor sunset",
-    "status": "pending",
-    "auto_select": false,
-    "budget_max": 5.00,
-    "created_at": "2026-03-11T10:00:00Z",
-    "updated_at": "2026-03-11T10:00:00Z"
-  },
-  "candidates": []
+  "success": true,
+  "data": {
+    "intent": {
+      "id": "uuid",
+      "query": "Generate a watercolor sunset",
+      "status": "pending",
+      "auto_select": false,
+      "budget_max": 5.00,
+      "created_at": "2026-03-11T10:00:00Z"
+    },
+    "candidates": []
+  }
 }
 ```
 
@@ -57,22 +65,23 @@ Get intent status, candidates, and execution result.
     "updated_at": "2026-03-11T10:00:02Z"
   },
   "candidates": [
-    {
-      "id": "uuid",
-      "intent_id": "uuid",
-      "source": "xgate",
-      "executor_type": "x402_endpoint",
-      "name": "ImageGen Pro",
-      "description": "AI image generation service",
-      "endpoint_url": "https://imagegen.example.com/generate",
-      "price_usdc": 0.50,
-      "relevance_score": 0.95,
-      "portal_score": 92,
-      "input_schema": { "type": "object", "properties": { "prompt": { "type": "string" } } },
-      "created_at": "2026-03-11T10:00:01Z"
-    }
-  ],
-  "execution": null
+      {
+        "id": "uuid",
+        "intent_id": "uuid",
+        "source": "xgate",
+        "executor_type": "x402_endpoint",
+        "name": "ImageGen Pro",
+        "description": "AI image generation service",
+        "endpoint_url": "https://imagegen.example.com/generate",
+        "price_usdc": 0.50,
+        "relevance_score": 0.95,
+        "portal_score": 92,
+        "input_schema": { "type": "object", "properties": { "prompt": { "type": "string" } } },
+        "created_at": "2026-03-11T10:00:01Z"
+      }
+    ],
+    "execution": null
+  }
 }
 ```
 
@@ -98,13 +107,18 @@ pending → resolving → resolved → executing → completed | failed | refund
 
 Execute a chosen candidate.
 
-**Request:**
+**Request body (JSON):**
 ```json
 {
-  "candidate_id": "uuid (required) — The candidate to execute",
-  "context": "string (optional) — Additional context for the executor"
+  "candidate_id": "the-candidate-uuid",
+  "context": {"tool": "generate_image", "prompt": "a sunset"}
 }
 ```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `candidate_id` | string (uuid) | yes | The candidate to execute |
+| `context` | object | no | Key-value pairs with execution context (tool name, params, etc.) |
 
 **Response (200):**
 ```json
