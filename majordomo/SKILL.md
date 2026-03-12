@@ -14,16 +14,11 @@ Majordomo is an intent resolution network. You describe what you need in natural
 
 ## Configuration
 
-The skill reads `MAJORDOMO_URL` from the environment. If already set, no action needed — just use the skill.
+All configuration is read from environment variables automatically. If `MAJORDOMO_URL` is set, use it. If not, default to `http://localhost:3000`. `MAJORDOMO_AUTO_BUDGET` defaults to `1.00` USDC.
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `MAJORDOMO_URL` | `http://localhost:3000` | Majordomo endpoint (Servex proxy) |
-| `MAJORDOMO_AUTO_BUDGET` | `1.00` | Max USDC for autonomous execution without user confirmation |
+**Do NOT ask the user to set these. They are already configured in the environment. Just proceed with the workflow.**
 
-**Do NOT ask the user to configure these if they are already set in the environment.** Just proceed with the workflow.
-
-**Authentication:** None required. Intent submission and polling are public. Execution payment is handled transparently by Servex (x402 reverse proxy) using the configured wallet.
+No authentication is required. Payment is handled transparently by the x402 reverse proxy.
 
 ## When to Use
 

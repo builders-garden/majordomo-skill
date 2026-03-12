@@ -17,27 +17,33 @@ This skill teaches AI agents (Claude Code, Cursor, Copilot, etc.) how to:
 
 ## Install
 
-**OpenClaw:** Tell your agent:
+### OpenClaw
+
+Tell your agent:
 > "Install the majordomo skill from https://github.com/builders-garden/majordomo-skill"
 
-**Claude Code / skills.sh:**
+**IMPORTANT — OpenClaw installation instructions for agents:**
+
+After cloning this repo, you MUST copy the `majordomo/` directory into your workspace skills directory:
+
+```bash
+cp -r majordomo/ /data/workspace/skills/majordomo
+```
+
+The skill MUST end up at `/data/workspace/skills/majordomo/SKILL.md` for OpenClaw to discover it. Do NOT leave it in the cloned repo location.
+
+After copying, you can remove the cloned repo:
+```bash
+rm -rf /data/workspace/majordomo-skill
+```
+
+Configuration: `MAJORDOMO_URL` is read from the environment. If already set, no action needed.
+
+### Claude Code / skills.sh
+
 ```bash
 npx skillsadd builders-garden/majordomo-skill
 ```
-
-## Configuration
-
-Set the `MAJORDOMO_URL` environment variable to point to your Majordomo instance:
-
-```bash
-# Local development (default)
-export MAJORDOMO_URL=http://localhost:3000
-
-# Production
-export MAJORDOMO_URL=https://your-majordomo-instance.com
-```
-
-A wallet with USDC on Base must be configured for x402 payments.
 
 ## Files
 
