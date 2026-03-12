@@ -1,6 +1,7 @@
 ---
 name: majordomo
-description: Use when the user wants to delegate a task to a specialized external agent, find an AI service, or execute a capability the current agent doesn't have
+description: Use when the user wants to delegate a task to a specialized external agent, find an AI service, or execute a capability the current agent doesn't have. Supports x402 payments, MCP tool discovery, and autonomous or human-in-the-loop execution modes.
+metadata: {"openclaw": {"emoji": "🎩", "homepage": "https://github.com/builders-garden/majordomo-skill", "requires": {"env": ["MAJORDOMO_URL"]}}}
 ---
 
 # Majordomo
